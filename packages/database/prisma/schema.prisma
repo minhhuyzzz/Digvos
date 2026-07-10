@@ -1,0 +1,186 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  EMPLOYER
+  ADMIN
+}
+
+enum ProficiencyLevel {
+  BASIC
+  INTERMEDIATE
+  ADVANCED
+  HIGHLY_ADVANCED
+}
+
+enum AiLabel {
+  AI_EXPLICIT // AI-E
+  AI_IMPLICIT // AI-I
+}
+
+model User {
+  id               String           @id @default(cuid())
+  auth0Sub         String?          @unique
+  email            String           @unique
+  name             String?
+  role             Role             @default(STUDENT)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  
+  studentProfile   StudentProfile?
+  teacherProfile   TeacherProfile?
+  employerProfile  EmployerProfile?
+  wallet           Wallet?
+  auditLogs        AuditLog[]
+}
+
+model StudentProfile {
+  id               String             @id @default(cuid())
+  userId           String             @unique
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  radarData        Json?              // Lưu trữ tọa độ 5 nhóm năng lực chuẩn DigComp 3.0
+  ePortfolio       String?            // Supabase Storage URL cho file minh chứng
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  classrooms       ClassroomStudent[]
+  submissions      Submission[]
+  certificates     Certificate[]
+}
+
+model TeacherProfile {
+  id               String             @id @default(cuid())
+  userId           String             @unique
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  classrooms       Classroom[]
+}
+
+model EmployerProfile {
+  id               String             @id @default(cuid())
+  userId           String             @unique
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName      String
+  isVerified       Boolean            @default(false)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  jobCampaigns     JobCampaign[]
+}
+
+model Classroom {
+  id               String             @id @default(cuid())
+  code             String             @unique
+  name             String
+  teacherId        String
+  teacher          TeacherProfile     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  students         ClassroomStudent[]
+}
+
+model ClassroomStudent {
+  classroomId      String
+  classroom        Classroom          @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  studentId        String
+  student          StudentProfile     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdAt        DateTime           @default(now())
+
+  @@id([classroomId, studentId])
+}
+
+model Question {
+  id               String             @id @default(cuid())
+  group            String             // Ví dụ: "DigComp 1.1", "DigComp 1.2"
+  level            ProficiencyLevel   @default(BASIC)
+  aiLabel          AiLabel            @default(AI_IMPLICIT)
+  content          String
+  options          Json               // Lưu trữ mảng các đáp án và đáp án đúng
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model Submission {
+  id               String             @id @default(cuid())
+  studentId        String
+  student          StudentProfile     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  fileUrl          String?            // URL file bài nộp trên Supabase Storage
+  score            Float?
+  feedback         String?
+  isGradedByAI     Boolean            @default(false)
+  proctoringFlag   Boolean            @default(false)
+  proctoringLog    Json?              // Nhật ký giám sát chuyển tab, copy-paste
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model Wallet {
+  id               String             @id @default(cuid())
+  userId           String             @unique
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance          Float              @default(0.0)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  transactions     Transaction[]
+}
+
+enum TransactionType {
+  DEPOSIT
+  SPEND
+  PLATFORM_FEE
+  EARNING
+}
+
+model Transaction {
+  id               String             @id @default(cuid())
+  walletId         String
+  wallet           Wallet             @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  amount           Float
+  type             TransactionType
+  description      String?
+  createdAt        DateTime           @default(now())
+}
+
+model Certificate {
+  id               String             @id @default(cuid())
+  studentId        String
+  student          StudentProfile     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  txHash           String             @unique
+  qrCode           String?
+  metadata         Json?              // Điểm số, ngày cấp, chuẩn DigComp 3.0
+  isValid          Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model AuditLog {
+  id               String             @id @default(cuid())
+  userId           String?
+  user             User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action           String
+  details          String?
+  ipAddress        String?
+  createdAt        DateTime           @default(now())
+}
+
+model JobCampaign {
+  id               String             @id @default(cuid())
+  employerId       String
+  employer         EmployerProfile    @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
