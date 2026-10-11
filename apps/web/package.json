@@ -8,7 +8,10 @@
     "start": "next start"
   },
   "dependencies": {
+    "@auth0/auth0-react": "^2.21.0",
     "@digvos/api-contract": "*",
+    "@digvos/ui": "*",
+    "@paper-design/shaders-react": "^0.0.77",
     "framer-motion": "^12.42.2",
     "lucide-react": "^0.368.0",
     "next": "^15.0.0",
@@ -17,6 +20,7 @@
     "recharts": "^2.12.5"
   },
   "devDependencies": {
+    "@digvos/config-tailwind": "*",
     "@types/node": "^20.12.7",
     "@types/react": "^19.0.0-rc",
     "@types/react-dom": "^19.0.0-rc",

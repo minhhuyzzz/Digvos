@@ -1,114 +1,85 @@
+"use client";
+
 import React from 'react';
-import Link from 'next/link';
-import { Card } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { Check } from 'lucide-react';
+import PricingSection from '@/components/landing/pricing-section';
 
 export default function PricingPage() {
-  const plans = [
-    {
-      name: 'Free (Cá nhân)',
-      price: '0đ',
-      desc: 'Dành cho người học muốn tự đánh giá năng lực số cơ bản.',
-      features: [
-        'Vẽ 1 biểu đồ Radar Năng lực số',
-        'Luyện tập 3 đề CAT Test/tháng',
-        'Lưu trữ hồ sơ e-Portfolio cơ bản',
-        'Hỗ trợ cộng đồng',
-      ],
-      cta: 'Bắt đầu miễn phí',
-      popular: false,
-    },
-    {
-      name: 'Pro (Người dạy / Chuyên gia)',
-      price: '299K',
-      period: '/tháng',
-      desc: 'Dành cho giáo viên quản lý lớp học và tự động chấm điểm AI.',
-      features: [
-        'Đầy đủ tính năng gói Free',
-        'Tạo tối đa 5 lớp học phi tập trung',
-        'Không giới hạn CAT Test cho học sinh',
-        'AI chấm điểm gợi ý (Gemini 1.5 Flash)',
-        'Đồng bộ trực tiếp Google Classroom',
-      ],
-      cta: 'Nâng cấp Pro',
-      popular: true,
-    },
-    {
-      name: 'Enterprise (Tổ chức)',
-      price: 'Liên hệ',
-      desc: 'Dành cho doanh nghiệp tuyển dụng và trường học quy mô lớn.',
-      features: [
-        'Đầy đủ tính năng gói Pro',
-        'Đúc chứng chỉ SBT Polygon số lượng lớn',
-        'Bộ lọc Radar săn nhân tài nâng cao',
-        'Kiểm toán logs bất biến (Immutable Logs)',
-        'Hệ thống Analytics tổng quan tối cao',
-        'Hỗ trợ kỹ thuật 24/7 riêng biệt',
-      ],
-      cta: 'Liên hệ tư vấn',
-      popular: false,
-    },
-  ];
-
   return (
-    <div className="space-y-12 py-10 text-center text-slate-900">
-      <div className="space-y-4">
-        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-950 leading-tight">
-          Bảng Giá Dịch Vụ DIGVOS
-        </h1>
-        <p className="text-sm md:text-base text-slate-500 max-w-xl mx-auto font-light leading-relaxed">
-          Lựa chọn gói dịch vụ phù hợp để tối ưu hóa việc đánh giá và bảo chứng năng lực số của bạn hoặc doanh nghiệp.
-        </p>
-      </div>
+    <div className="space-y-16 pb-10 text-center text-slate-900">
+      {/* SEO Structured Data for Pricing */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "DIGVOS Subscription Plans",
+            "image": "https://digvos.edu.vn/pricing-image.png",
+            "description": "Các gói dịch vụ đánh giá và bảo chứng năng lực số của DIGVOS",
+            "offers": {
+              "@type": "AggregateOffer",
+              "priceCurrency": "VND",
+              "lowPrice": "0",
+              "highPrice": "299000",
+              "offerCount": "3"
+            }
+          })
+        }}
+      />
 
-      {/* Pricing Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto pt-6 text-left">
-        {plans.map((plan, idx) => (
-          <Card
-            key={idx}
-            variant={plan.popular ? 'premium' : 'default'}
-            className={`flex flex-col justify-between relative h-full transition-transform hover:scale-[1.02] duration-300 border border-slate-200/60
-              ${plan.popular ? 'border-brand-500/40 shadow-lg shadow-brand-500/5' : ''}
-            `}
-          >
-            {plan.popular && (
-              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-brand-500 text-slate-950 font-bold text-[10px] tracking-widest px-3 py-1 rounded-full uppercase">
-                Khuyên Dùng
-              </span>
-            )}
-            
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">{plan.name}</h3>
-                <p className="text-xs text-slate-500 font-light leading-relaxed min-h-[40px]">{plan.desc}</p>
-              </div>
+      {/* Render the unified Pricing Section Component */}
+      <PricingSection />
 
-              <div className="flex items-baseline space-x-1 py-2 border-b border-slate-100">
-                <span className="text-3xl font-extrabold text-slate-900">{plan.price}</span>
-                {plan.period && <span className="text-xs text-slate-400">{plan.period}</span>}
-              </div>
+      {/* Feature Comparison Matrix Table */}
+      <div className="max-w-4xl mx-auto pt-16 text-left space-y-6">
+        <h3 className="text-base font-bold text-slate-900 pl-4 border-l-2 border-[#5a96b0]">
+          So Sánh Tính Năng Chi Tiết
+        </h3>
 
-              <ul className="space-y-3.5 text-xs text-slate-600">
-                {plan.features.map((feature, fIdx) => (
-                  <li key={fIdx} className="flex items-start space-x-2.5">
-                    <Check className="w-4 h-4 text-brand-500 min-w-4 pt-0.5" />
-                    <span className="font-light leading-relaxed">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <Link href="/login" className="mt-8 block">
-              <Button
-                variant={plan.popular ? 'primary' : 'glass'}
-                className="w-full text-xs font-semibold py-3"
-              >
-                {plan.cta}
-              </Button>
-            </Link>
-          </Card>
-        ))}
+        <div className="overflow-hidden border border-slate-200 rounded-2xl bg-white/60 shadow-sm">
+          <table className="w-full text-xs leading-normal">
+            <thead>
+              <tr className="bg-slate-50/70 border-b border-slate-200">
+                <th className="p-4 font-bold text-slate-800 text-left">Tính năng chính</th>
+                <th className="p-4 font-bold text-slate-800 text-center">Free</th>
+                <th className="p-4 font-bold text-slate-800 text-center">Pro</th>
+                <th className="p-4 font-bold text-slate-800 text-center">Enterprise</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              <tr>
+                <td className="p-4 text-slate-600 font-light">Đánh giá thích ứng (CAT Test)</td>
+                <td className="p-4 text-center text-slate-500 font-light">3 lượt/tháng</td>
+                <td className="p-4 text-center text-[#5a96b0] font-bold">Không giới hạn</td>
+                <td className="p-4 text-center text-[#5a96b0] font-bold">Không giới hạn</td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-600 font-light">Đúc chứng chỉ SBT on-chain</td>
+                <td className="p-4 text-center text-slate-500 font-light">Tự thanh toán gas</td>
+                <td className="p-4 text-center text-slate-500 font-light">Tài trợ phí gas</td>
+                <td className="p-4 text-center text-slate-500 font-light">Tài trợ phí gas</td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-600 font-light">Trợ lý chấm điểm AI (Gemini)</td>
+                <td className="p-4 text-center text-slate-400 font-light">—</td>
+                <td className="p-4 text-center text-[#5a96b0] font-bold">✓ (Chậm hơn)</td>
+                <td className="p-4 text-center text-[#5a96b0] font-bold">✓ (Tốc độ cao)</td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-600 font-light">Tạo lớp học phi tập trung</td>
+                <td className="p-4 text-center text-slate-400 font-light">—</td>
+                <td className="p-4 text-center text-slate-500 font-light">Tối đa 5 lớp</td>
+                <td className="p-4 text-center text-[#5a96b0] font-bold">Không giới hạn</td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-600 font-light">Hỗ trợ API Webhook & LMS</td>
+                <td className="p-4 text-center text-slate-400 font-light">—</td>
+                <td className="p-4 text-center text-slate-400 font-light">—</td>
+                <td className="p-4 text-center text-[#5a96b0] font-bold">Có hỗ trợ</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

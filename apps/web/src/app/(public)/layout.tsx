@@ -14,7 +14,7 @@ export default function PublicLayout({
       <Navbar />
 
       {/* Nội dung chính của trang con */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-6 pt-24 pb-12 z-10">
+      <main className="flex-1 w-full pt-20 pb-12 z-10">
         {children}
       </main>
 

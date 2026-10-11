@@ -14,11 +14,16 @@ enum Role {
   ADMIN
 }
 
+// 8 Proficiency Levels chuẩn DigComp 3.0
 enum ProficiencyLevel {
-  BASIC
-  INTERMEDIATE
-  ADVANCED
-  HIGHLY_ADVANCED
+  FOUNDATION_1
+  FOUNDATION_2
+  INTERMEDIATE_3
+  INTERMEDIATE_4
+  ADVANCED_5
+  ADVANCED_6
+  HIGHLY_SPECIALIZED_7
+  HIGHLY_SPECIALIZED_8
 }
 
 enum AiLabel {
@@ -26,114 +31,393 @@ enum AiLabel {
   AI_IMPLICIT // AI-I
 }
 
+enum PromptStatus {
+  ACTIVE
+  DRAFT
+  ARCHIVED
+}
+
+enum JobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ResourceType {
+  QUESTION_BANK
+  QUESTION
+  RUBRIC
+  COMPETENCY_FRAMEWORK
+  COURSE
+  ASSESSMENT
+}
+
+enum ResourceStatus {
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
+  APPROVED
+  PUBLISHED
+  DEPRECATED
+  ARCHIVED
+}
+
+enum PluginStatus {
+  PUBLISHED
+  DEPRECATED
+  BANNED
+}
+
+enum PluginLifecycle {
+  INSTALLED
+  ENABLED
+  DISABLED
+  REMOVED
+}
+
+enum PluginPermission {
+  READ_SUBMISSION
+  WRITE_RUBRIC
+  READ_USER
+  READ_CERTIFICATE
+}
+
+// ==========================================
+// 1. INFRASTRUCTURE & SAAS TENANT
+// ==========================================
+model Tenant {
+  id        String    @id @default(cuid())
+  name      String
+  domain    String?   @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  users                User[]
+  classrooms           Classroom[]
+  questions            Question[]
+  competencyFrameworks CompetencyFramework[]
+  certificates         Certificate[]
+  submissions          Submission[]
+  jobCampaigns         JobCampaign[]
+}
+
+// ==========================================
+// 2. IDENTITY DOMAIN (RBAC)
+// ==========================================
 model User {
-  id               String           @id @default(cuid())
-  auth0Sub         String?          @unique
-  email            String           @unique
-  name             String?
-  role             Role             @default(STUDENT)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  
-  studentProfile   StudentProfile?
-  teacherProfile   TeacherProfile?
-  employerProfile  EmployerProfile?
-  wallet           Wallet?
-  auditLogs        AuditLog[]
+  id        String    @id @default(cuid())
+  auth0Sub  String?   @unique
+  email        String    @unique
+  passwordHash String?
+  name         String?
+  role         Role      @default(STUDENT)
+  tenantId     String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  isEmailVerified      Boolean   @default(false)
+  verificationCode     String?
+  verificationExpires  DateTime?
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  version   Int       @default(1)
+
+  studentProfile  StudentProfile?
+  teacherProfile  TeacherProfile?
+  employerProfile EmployerProfile?
+  wallet          Wallet?
+  sessions        UserSession[]
+  auditLogs       AuditLog[]
+}
+
+model UserSession {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId         String?
+  platform         String?
+  browser          String?
+  location         String?
+  ip               String?
+  userAgent        String?
+  refreshTokenHash String
+  expiresAt        DateTime
+  lastActivity     DateTime  @default(now())
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
 
 model StudentProfile {
-  id               String             @id @default(cuid())
-  userId           String             @unique
-  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  radarData        Json?              // Lưu trữ tọa độ 5 nhóm năng lực chuẩn DigComp 3.0
-  ePortfolio       String?            // Supabase Storage URL cho file minh chứng
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  radarData     Json? // Lưu trữ tọa độ radar 5 vùng năng lực DigComp
+  ePortfolio    String? // Supabase Storage URL cho file minh chứng
+  walletAddress String? // Địa chỉ ví Web3 nhận Soulbound Token
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
 
-  classrooms       ClassroomStudent[]
-  submissions      Submission[]
-  certificates     Certificate[]
+  classrooms         ClassroomStudent[]
+  submissions        Submission[]
+  certificates       Certificate[]
+  competencyProgress StudentCompetency[]
+  catSessions        CatSession[]
 }
 
 model TeacherProfile {
-  id               String             @id @default(cuid())
-  userId           String             @unique
-  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  classrooms       Classroom[]
+  classrooms Classroom[]
 }
 
 model EmployerProfile {
-  id               String             @id @default(cuid())
-  userId           String             @unique
-  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  companyName      String
-  isVerified       Boolean            @default(false)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName String
+  isVerified  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
-  jobCampaigns     JobCampaign[]
+  jobCampaigns JobCampaign[]
 }
 
+// ==========================================
+// 3. ORGANIZATIONAL WORKSPACE
+// ==========================================
 model Classroom {
-  id               String             @id @default(cuid())
-  code             String             @unique
-  name             String
-  teacherId        String
-  teacher          TeacherProfile     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  id        String         @id @default(cuid())
+  code      String         @unique
+  name      String
+  teacherId String
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  tenantId  String
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  deletedAt DateTime?
 
-  students         ClassroomStudent[]
+  students ClassroomStudent[]
 }
 
 model ClassroomStudent {
-  classroomId      String
-  classroom        Classroom          @relation(fields: [classroomId], references: [id], onDelete: Cascade)
-  studentId        String
-  student          StudentProfile     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  createdAt        DateTime           @default(now())
+  classroomId String
+  classroom   Classroom      @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdAt   DateTime       @default(now())
 
   @@id([classroomId, studentId])
 }
 
+// ==========================================
+// 4. COMPETENCY DOMAIN (DigComp 3.0 Core)
+// ==========================================
+model CompetencyFramework {
+  id          String    @id @default(cuid())
+  name        String // Ví dụ: "DigComp 3.0", "DigCompEdu"
+  description String?
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  version     Int       @default(1)
+
+  areas CompetencyArea[]
+}
+
+model CompetencyArea {
+  id          String              @id @default(cuid())
+  frameworkId String
+  framework   CompetencyFramework @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+  code        String // Ví dụ: "AREA_1", "AREA_2"
+  name        String // Ví dụ: "Information and data literacy"
+  description String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  competencies Competency[]
+}
+
+model Competency {
+  id          String         @id @default(cuid())
+  areaId      String
+  area        CompetencyArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  code        String // Ví dụ: "1.1", "1.2", "2.1"
+  name        String // Ví dụ: "Browsing, searching and filtering data"
+  description String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  questions       Question[]
+  studentProgress StudentCompetency[]
+  submissions     Submission[]
+  catSessions     CatSession[]
+  certificates    Certificate[]
+}
+
+// Bảng lưu tiến trình năng lực của sinh viên
+model StudentCompetency {
+  id               String           @id @default(cuid())
+  studentId        String
+  student          StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  competencyId     String
+  competency       Competency       @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  proficiencyLevel ProficiencyLevel @default(FOUNDATION_1)
+  evidenceCount    Int              @default(0)
+  updatedAt        DateTime         @updatedAt
+
+  @@unique([studentId, competencyId])
+}
+
+// ==========================================
+// 5. ASSESSMENT DOMAIN
+// ==========================================
 model Question {
-  id               String             @id @default(cuid())
-  group            String             // Ví dụ: "DigComp 1.1", "DigComp 1.2"
-  level            ProficiencyLevel   @default(BASIC)
-  aiLabel          AiLabel            @default(AI_IMPLICIT)
-  content          String
-  options          Json               // Lưu trữ mảng các đáp án và đáp án đúng
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  id           String           @id @default(cuid())
+  competencyId String
+  competency   Competency       @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  level        ProficiencyLevel @default(FOUNDATION_1)
+  aiLabel      AiLabel          @default(AI_IMPLICIT)
+  content      String
+  options      Json // Lưu trữ mảng các đáp án và đáp án đúng
+  tenantId     String
+  tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  deletedAt    DateTime?
+}
+
+model CatSession {
+  id             String           @id @default(cuid())
+  studentId      String
+  student        StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  competencyId   String
+  competency     Competency       @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  status         String // "STARTED", "COMPLETED"
+  currentLevel   ProficiencyLevel @default(FOUNDATION_1)
+  estimatedTheta Float            @default(0.0) // IRT parameter theta (-3.0 to 3.0)
+  questionsAsked Int              @default(0)
+  maxQuestions   Int              @default(10)
+  responses      CatResponse[]
+  tenantId       String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+model CatResponse {
+  id         String     @id @default(cuid())
+  sessionId  String
+  session    CatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  questionId String
+  isCorrect  Boolean
+  createdAt  DateTime   @default(now())
+}
+
+enum SubmissionStatus {
+  UPLOADED
+  PROCESSING
+  AI_GRADED
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  FAILED
 }
 
 model Submission {
-  id               String             @id @default(cuid())
-  studentId        String
-  student          StudentProfile     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  fileUrl          String?            // URL file bài nộp trên Supabase Storage
-  score            Float?
-  feedback         String?
-  isGradedByAI     Boolean            @default(false)
-  proctoringFlag   Boolean            @default(false)
-  proctoringLog    Json?              // Nhật ký giám sát chuyển tab, copy-paste
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  id             String           @id @default(cuid())
+  studentId      String
+  student        StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  competencyId   String?
+  competency     Competency?      @relation(fields: [competencyId], references: [id], onDelete: SetNull)
+  fileUrl        String? // URL file bài nộp thực hành trên S3/Supabase Storage
+  status         SubmissionStatus @default(UPLOADED)
+  score          Float?
+  feedback       String?
+  isGradedByAI   Boolean          @default(false)
+  proctoringFlag Boolean          @default(false)
+  proctoringLog  Json? // Nhật ký giám sát
+  tenantId       String
+  tenant         Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  deletedAt      DateTime?
 }
 
-model Wallet {
-  id               String             @id @default(cuid())
-  userId           String             @unique
-  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  balance          Float              @default(0.0)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+// ==========================================
+// 6. CERTIFICATION DOMAIN
+// ==========================================
+enum CertificateStatus {
+  PENDING
+  PROCESSING
+  ISSUED
+  FAILED
+  REVOKED
+}
 
-  transactions     Transaction[]
+model Certificate {
+  id               String            @id @default(cuid())
+  studentId        String
+  student          StudentProfile    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  competencyId     String
+  competency       Competency        @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  level            ProficiencyLevel
+  status           CertificateStatus @default(PENDING)
+  tokenId          String?           @unique
+  txHash           String?           @unique
+  verificationCode String            @unique @default(uuid())
+  qrCode           String?
+  metadata         Json? // Lưu trữ điểm số, level đạt được, danh mục DigComp
+  isValid          Boolean           @default(true)
+  tenantId         String
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  deletedAt        DateTime?
+
+  @@unique([studentId, competencyId, level])
+}
+
+// ==========================================
+// 7. TALENT DOMAIN (EMPLOYER MATCHING)
+// ==========================================
+model JobCampaign {
+  id          String          @id @default(cuid())
+  employerId  String
+  employer    EmployerProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  tenantId    String
+  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?
+}
+
+// ==========================================
+// 8. BILLING & WALLET (SAAS SUBSCRIPTION)
+// ==========================================
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Float    @default(0.0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
 }
 
 enum TransactionType {
@@ -144,43 +428,227 @@ enum TransactionType {
 }
 
 model Transaction {
-  id               String             @id @default(cuid())
-  walletId         String
-  wallet           Wallet             @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  amount           Float
-  type             TransactionType
-  description      String?
-  createdAt        DateTime           @default(now())
+  id          String          @id @default(cuid())
+  walletId    String
+  wallet      Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  amount      Float
+  type        TransactionType
+  description String?
+  createdAt   DateTime        @default(now())
 }
 
-model Certificate {
-  id               String             @id @default(cuid())
-  studentId        String
-  student          StudentProfile     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  txHash           String             @unique
-  qrCode           String?
-  metadata         Json?              // Điểm số, ngày cấp, chuẩn DigComp 3.0
-  isValid          Boolean            @default(true)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-}
-
+// ==========================================
+// 9. PLATFORM SERVICES (AUDIT LOGS & EVENT BUS)
+// ==========================================
 model AuditLog {
-  id               String             @id @default(cuid())
-  userId           String?
-  user             User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action           String
-  details          String?
-  ipAddress        String?
-  createdAt        DateTime           @default(now())
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
 }
 
-model JobCampaign {
-  id               String             @id @default(cuid())
-  employerId       String
-  employer         EmployerProfile    @relation(fields: [employerId], references: [id], onDelete: Cascade)
-  title            String
-  description      String?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+model EventLog {
+  id        String   @id @default(cuid())
+  eventName String // Ví dụ: "AssessmentCompleted", "CompetencyUpdated"
+  payload   Json
+  status    String // PENDING, PROCESSED, FAILED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  payload   Json
+  status    String // UNREAD, READ
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==========================================
+// 10. AI PLATFORM
+// ==========================================
+model AIProviderSetting {
+  id          String  @id @default(cuid())
+  tenantId    String? // null nếu là setting global
+  provider    String // "GEMINI", "OPENAI", "CLAUDE"
+  model       String
+  temperature Float   @default(0.0)
+  topP        Float   @default(0.1)
+  maxTokens   Int     @default(2048)
+  timeout     Int     @default(30000)
+  retry       Int     @default(3)
+  enabled     Boolean @default(true)
+}
+
+model PromptTemplate {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  category    String // "GRADING", "SUMMARY", "FEEDBACK"
+  language    String       @default("vi")
+  description String?
+  version     Int
+  content     String
+  status      PromptStatus
+  createdAt   DateTime     @default(now())
+
+  variables PromptVariable[]
+}
+
+model PromptVariable {
+  id       String         @id @default(cuid())
+  promptId String
+  prompt   PromptTemplate @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  name     String // "submissionText", "rubric"
+  type     String // "string", "json"
+}
+
+model AIJob {
+  id                  String    @id @default(cuid())
+  inputHash           String    @unique // Hashing input payload để chống trùng lặp
+  tenantId            String
+  userId              String
+  type                String
+  payload             Json
+  status              JobStatus // "QUEUED", "PROCESSING", "COMPLETED", "FAILED"
+  priority            Int       @default(0)
+  estimatedCost       Float?
+  tenantQuotaSnapshot Json?
+  result              Json?
+  error               String?
+  createdAt           DateTime  @default(now())
+}
+
+// ==========================================
+// 11. AI MONITORING & ANALYTICS
+// ==========================================
+model AITransactionLog {
+  id                 String   @id @default(cuid())
+  providerRequestId  String?
+  providerResponseId String?
+  tenantId           String
+  provider           String
+  model              String
+  endpoint           String
+  totalTokens        Int
+  cost               Float
+  latencyMs          Int
+  status             String
+  createdAt          DateTime @default(now())
+}
+
+model AITenantQuota {
+  id            String   @id @default(cuid())
+  tenantId      String   @unique
+  dailyTokens   Int      @default(0)
+  monthlyTokens Int      @default(0)
+  monthlyCost   Float    @default(0.0)
+  limitCost     Float
+  updatedAt     DateTime @updatedAt
+}
+
+model AIAuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  action    String
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}
+
+model TenantFeatureFlag {
+  id          String  @id @default(cuid())
+  tenantId    String
+  featureName String
+  isEnabled   Boolean @default(false)
+
+  @@unique([tenantId, featureName])
+}
+
+// ==========================================
+// 12. MARKETPLACE
+// ==========================================
+model MarketplaceResource {
+  id               String         @id @default(cuid())
+  resourceType     ResourceType
+  currentVersionId String? // Trỏ tới version đang được Publish
+  status           ResourceStatus
+  authorId         String
+  createdAt        DateTime       @default(now())
+
+  versions MarketplaceVersion[]
+  reviews  MarketplaceReview[]
+}
+
+model MarketplaceVersion {
+  id          String              @id @default(cuid())
+  resourceId  String
+  resource    MarketplaceResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  version     String
+  changelog   String?
+  status      ResourceStatus
+  publishedBy String
+  publishedAt DateTime?
+  createdAt   DateTime            @default(now())
+}
+
+model MarketplaceReview {
+  id               String              @id @default(cuid())
+  resourceId       String
+  resource         MarketplaceResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  userId           String
+  rating           Int
+  comment          String?
+  verifiedPurchase Boolean             @default(false)
+  helpfulCount     Int                 @default(0)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+}
+
+// ==========================================
+// 13. PLUGIN PLATFORM
+// ==========================================
+model Plugin {
+  id        String       @id @default(cuid())
+  name      String
+  author    String
+  status    PluginStatus
+  createdAt DateTime     @default(now())
+
+  releases PluginRelease[]
+}
+
+model PluginRelease {
+  id          String   @id @default(cuid())
+  pluginId    String
+  plugin      Plugin   @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  version     String
+  manifest    Json
+  entryPoint  String
+  checksum    String
+  releaseNote String?
+  createdAt   DateTime @default(now())
+}
+
+model TenantPlugin {
+  id          String          @id @default(cuid())
+  tenantId    String
+  pluginId    String
+  releaseId   String
+  status      PluginLifecycle
+  installedAt DateTime        @default(now())
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
